@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"os/exec"
+	"os/user"
 )
 
 func defaultConfigDir(current *user.User) string{
@@ -11,7 +12,7 @@ func defaultConfigDir(current *user.User) string{
 }
 
 func defaultSteamDir(current *user.User) string{
-	return "C:", "Program Files (x86)", "Steam");
+	return filepath.Join("C:", "Program Files (x86)", "Steam");
 }
 
 func command() *exec.Cmd{
