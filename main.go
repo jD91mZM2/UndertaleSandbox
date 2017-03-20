@@ -156,7 +156,7 @@ func main(){
 		}
 	}();
 
-	fmt.Println("Looking for conflicts...");
+	fmt.Println("Cloning...");
 
 	src_file0, err := os.Open(loc_file0);
 	if(err != nil){
