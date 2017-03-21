@@ -1,14 +1,14 @@
 # Introduction
 Ever wanted to jump to a specific part of Undertale easily?  
 [Flowey's Time Machine](https://crumblingstatue.github.io/FloweysTimeMachine/) already makes save files,  
-but you have to backup them and stuff, every time... And Annoying dog would appear :|
+but you have to backup them and stuff, every time... And Annoying dog could appear :|
 
 Welp, I'm here to **fix that**!
 
 # UndertaleInstaller
 Undertale installer does a few things.  
 
-1. It searches for downloaded file0 and ini files.  
+1. It searches for downloaded file0 and ini files. (Reads latest modified)  
  - If file0 was not found it asks for the location.  
  - If the INI was not found, it uses the existing INI.  
 2. It backs everything up.  
