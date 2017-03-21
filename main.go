@@ -157,8 +157,29 @@ func main(){
 	}();
 
 	fmt.Println("Cloning...");
+	success, room := cloneFile0(loc_file0, dst_loc_file0);
+	if(!success){
+		return;
+	}
 
-	src_file0, err := os.Open(loc_file0);
+	success = cloneINI(loc_ini, dst_loc_ini, room);
+	if(!success){
+		return;
+	}
+
+	fmt.Println("Starting!");
+
+	cmd := command();
+	cmd.Dir = config.UndertaleBinaryDir;
+	err = cmd.Run();
+	if(err != nil){
+		stdutil.PrintErr("Couldn't run undertale", err);
+		return;
+	}
+}
+
+func cloneFile0(src, dst string) (success bool, room string){
+	src_file0, err := os.Open(src);
 	if(err != nil){
 		if(os.IsNotExist(err)){
 			stdutil.PrintErr("Hey, that file0 does not exist!", nil);
@@ -169,14 +190,12 @@ func main(){
 	}
 	defer src_file0.Close();
 
-	dst_file0, err := os.Create(dst_loc_file0);
+	dst_file0, err := os.Create(dst);
 	if(err != nil){
 		stdutil.PrintErr("Could not open file0 destination", nil);
 		return;
 	}
 	defer dst_file0.Close();
-
-	var room string;
 
 	scanner := bufio.NewScanner(src_file0);
 	i := 0;
@@ -189,10 +208,10 @@ func main(){
 			return;
 		}
 
+		i++;
 		if(i == FILE0_ROOM_LINE){
 			room = strings.TrimSpace(text);
 		}
-		i++;
 	}
 
 	err = scanner.Err();
@@ -201,7 +220,12 @@ func main(){
 		return;
 	}
 
-	src_ini, err := os.Open(loc_ini);
+	success = true;
+	return;
+}
+
+func cloneINI(src, dst, room string) (success bool){
+	src_ini, err := os.Open(src);
 	if(err != nil){
 		stdutil.PrintErr("Error reading undertale.ini", err);
 		checkConf();
@@ -209,14 +233,14 @@ func main(){
 	}
 	defer src_ini.Close();
 
-	dst_ini, err := os.Create(dst_loc_ini);
+	dst_ini, err := os.Create(dst);
 	if(err != nil){
 		stdutil.PrintErr("Error opening destination undertale.ini", err);
 		return;
 	}
 	defer dst_ini.Close();
 
-	scanner = bufio.NewScanner(src_ini);
+	scanner := bufio.NewScanner(src_ini);
 	for scanner.Scan(){
 		text := scanner.Text();
 		if(strings.HasPrefix(text, "Room=")){
@@ -237,13 +261,8 @@ func main(){
 		return;
 	}
 
-	cmd := command();
-	cmd.Dir = config.UndertaleBinaryDir;
-	err = cmd.Run();
-	if(err != nil){
-		stdutil.PrintErr("Couldn't run undertale", err);
-		return;
-	}
+	success = true;
+	return;
 }
 
 func checkConf(){
