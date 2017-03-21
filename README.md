@@ -5,8 +5,8 @@ but you have to backup them and stuff, every time... And Annoying dog could appe
 
 Welp, I'm here to **fix that**!
 
-# UndertaleInstaller
-Undertale installer does a few things.  
+# UndertaleSandbox
+UndertaleSandbox does a few things.  
 
 1. It searches for downloaded file0 and ini files. (Reads latest modified)  
  - If file0 was not found it asks for the location.  
