@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"regexp"
 	"bufio"
+	"flag"
 	"strings"
 )
 
@@ -27,6 +28,11 @@ type configStruct struct{
 var config configStruct;
 
 func main(){
+	var restart bool;
+
+	flag.BoolVar(&restart, "r", false, "Ask to restart undertale if closed?");
+	flag.Parse();
+
 	fmt.Println("Reading config...");
 
 	contents, err := ioutil.ReadFile(CONFIG_NAME);
@@ -135,6 +141,7 @@ func main(){
 	}
 
 	defer func(){
+		fmt.Println("Restoring file0...");
 		err := os.Rename(dst_loc_file0 + ".back", dst_loc_file0);
 		if(err != nil){
 			stdutil.PrintErr("Could not restore file0 backup", err);
@@ -149,6 +156,7 @@ func main(){
 	}
 
 	defer func(){
+		fmt.Println("Restoring undertale.ini...");
 		err := os.Rename(dst_loc_ini + ".back", dst_loc_ini);
 		if(err != nil){
 			stdutil.PrintErr("Could not restore ini backup", err);
@@ -169,12 +177,31 @@ func main(){
 
 	fmt.Println("Starting!");
 
-	cmd := command();
-	cmd.Dir = config.UndertaleBinaryDir;
-	err = cmd.Run();
-	if(err != nil){
-		stdutil.PrintErr("Couldn't run undertale", err);
-		return;
+	loop:
+	for{
+		cmd := command();
+		cmd.Dir = config.UndertaleBinaryDir;
+		err = cmd.Run();
+		if(err != nil){
+			stdutil.PrintErr("Couldn't run undertale", err);
+			return;
+		}
+
+		if(restart){
+			for{
+				fmt.Print("Undertale closed. Restart? [y/n] ");
+				opt := stdutil.MustScanLower();
+
+				if(opt == "y"){
+					continue loop;
+				} else if(opt == "n"){
+					break;
+				}
+
+				fmt.Println("Not a valid option. Must be either 'y' or 'n'.");
+			}
+		}
+		break;
 	}
 }
 
