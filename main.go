@@ -28,9 +28,13 @@ type configStruct struct{
 var config configStruct;
 
 func main(){
-	var restart bool;
+	var flag_file0 string;
+	var flag_ini string;
+	var flag_restart bool;
 
-	flag.BoolVar(&restart, "r", false, "Ask to restart undertale if closed?");
+	flag.BoolVar(&flag_restart, "r", false, "Ask to restart undertale if closed?");
+	flag.StringVar(&flag_file0, "file0", "", "Manually specify 'file0' location (default scans in downloads folder)");
+	flag.StringVar(&flag_ini, "ini", "", "Manually specify 'undertale.ini' location (default scans in downloads folder)");
 	flag.Parse();
 
 	fmt.Println("Reading config...");
@@ -72,48 +76,64 @@ func main(){
 		}
 	}
 
-	fmt.Println("Finding files...");
-
-	files, err := ioutil.ReadDir(config.DownloadsDir);
-	if(err != nil){
-		if(os.IsNotExist(err)){
-			stdutil.PrintErr("Downloads directory does not exist", nil);
-		} else {
-			stdutil.PrintErr("Could not scan directory", err);
-		}
-		checkConf();
-		return;
-	}
-
-	var file0 os.FileInfo;
-	var ini os.FileInfo;
-	for _, file := range files{
-		if(R_FILE0.MatchString(file.Name()) &&
-				(file0 == nil || file.ModTime().After(file0.ModTime()))){
-			file0 = file;
-		}
-		if(R_INI.MatchString(file.Name()) &&
-				(ini == nil || file.ModTime().After(ini.ModTime()))){
-			ini = file;
-		}
-	}
-
 	var loc_file0 string;
 	var loc_ini string;
+
 	dst_loc_file0 := filepath.Join(config.UndertaleConfigDir, "file0");
 	dst_loc_ini := filepath.Join(config.UndertaleConfigDir, "undertale.ini");
 
-	if(file0 == nil){
-		stdutil.PrintErr("Could not find file0 in downloads directory!", nil);
-		fmt.Print("file0 path: ");
-		loc_file0 = stdutil.MustScanTrim();
-	}
-	loc_file0 = filepath.Join(config.DownloadsDir, file0.Name());
+	file0_unset := flag_file0 == "";
+	ini_unset := flag_ini == "";
 
-	if(ini == nil){
-		loc_ini = dst_loc_ini + ".back"; // Because it'll be moved later on
+	if(file0_unset || ini_unset){
+		fmt.Println("Finding files...");
+
+		files, err := ioutil.ReadDir(config.DownloadsDir);
+		if(err != nil){
+			if(os.IsNotExist(err)){
+				stdutil.PrintErr("Downloads directory does not exist", nil);
+			} else {
+				stdutil.PrintErr("Could not scan directory", err);
+			}
+			checkConf();
+			return;
+		}
+
+		var file0 os.FileInfo;
+		var ini os.FileInfo;
+		for _, file := range files{
+			if(file0_unset){
+				if(R_FILE0.MatchString(file.Name()) &&
+						(file0 == nil || file.ModTime().After(file0.ModTime()))){
+					file0 = file;
+				}
+			}
+			if(ini_unset){
+				if(R_INI.MatchString(file.Name()) &&
+						(ini == nil || file.ModTime().After(ini.ModTime()))){
+					ini = file;
+				}
+			}
+		}
+
+		if(!file0_unset){
+			loc_file0 = flag_file0;
+		} else if(file0 == nil){
+			loc_file0 = dst_loc_file0 + ".back"; // Because it'll be moved later on
+		} else {
+			loc_file0 = filepath.Join(config.DownloadsDir, file0.Name());
+		}
+
+		if(!ini_unset){
+			loc_ini = flag_ini;
+		} else if(ini == nil){
+			loc_ini = dst_loc_ini + ".back"; // Because it'll be moved later on
+		} else {
+			loc_ini = filepath.Join(config.DownloadsDir, ini.Name());
+		}
 	} else {
-		loc_ini = filepath.Join(config.DownloadsDir, ini.Name());
+		loc_file0 = flag_file0;
+		loc_ini = flag_ini;
 	}
 
 	fmt.Println("file0: " + loc_file0);
@@ -184,10 +204,9 @@ func main(){
 		err = cmd.Run();
 		if(err != nil){
 			stdutil.PrintErr("Couldn't run undertale", err);
-			return;
 		}
 
-		if(restart){
+		if(flag_restart){
 			for{
 				fmt.Print("Undertale closed. Restart? [y/n] ");
 				opt := stdutil.MustScanLower();

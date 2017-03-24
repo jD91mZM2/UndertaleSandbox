@@ -9,8 +9,8 @@ Welp, I'm here to **fix that**!
 UndertaleSandbox does a few things.  
 
 1. It searches for downloaded file0 and ini files. (Reads latest modified)  
- - If file0 was not found it asks for the location.  
- - If the INI was not found, it uses the existing INI.  
+ - If any file was not found, it uses the existing file.  
+ - You can specify alternative file paths in command line arguments.
 2. It backs everything up.  
 3. It tries to remove annoying dog (resolving conflicts).  
 4. It copies the files over.  
@@ -19,6 +19,12 @@ UndertaleSandbox does a few things.
 
 Now, it might not work for you. But hopefully, you can resolve that by editing  
 the `.ui_config` file and set paths to their correct values.
+
+## Features
+- Cross platform
+- Simple to use
+- Configuration file
+- Command line arguments (run with --help)
 
 # Note
 The program **should** backup your data, but just in case anything goes wrong:  
