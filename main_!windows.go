@@ -1,11 +1,11 @@
 // +build !windows
 
-package main;
+package main
 
 import (
 	"os/exec"
 )
 
-func command() *exec.Cmd{
-	return exec.Command("./runner");
+func command() *exec.Cmd {
+	return exec.Command("./runner")
 }
