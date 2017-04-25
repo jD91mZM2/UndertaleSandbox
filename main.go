@@ -5,21 +5,22 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/legolord208/stdutil"
 	"io/ioutil"
 	"os"
 	"os/user"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/legolord208/stdutil"
 )
 
-var R_FILE0 = regexp.MustCompile(`file0( \([0-9]+\))?`)
-var R_INI = regexp.MustCompile(`undertale( \([0-9]+\))?.ini`)
+var regexFile0 = regexp.MustCompile(`file0( \([0-9]+\))?`)
+var regexINI = regexp.MustCompile(`undertale( \([0-9]+\))?.ini`)
 
-const FILE0_ROOM_LINE = 548
+const roomLine = 548
 
-const CONFIG_NAME = ".ui_config"
+const configFile = ".ui_config"
 
 type configStruct struct {
 	DownloadsDir       string
@@ -30,18 +31,18 @@ type configStruct struct {
 var config configStruct
 
 func main() {
-	var flag_file0 string
-	var flag_ini string
-	var flag_restart bool
+	var flagFile0 string
+	var flagINI string
+	var flagRestart bool
 
-	flag.BoolVar(&flag_restart, "r", false, "Ask to restart undertale if closed?")
-	flag.StringVar(&flag_file0, "file0", "", "Manually specify 'file0' location (default scans in downloads folder)")
-	flag.StringVar(&flag_ini, "ini", "", "Manually specify 'undertale.ini' location (default scans in downloads folder)")
+	flag.BoolVar(&flagRestart, "r", false, "Ask to restart undertale if closed?")
+	flag.StringVar(&flagFile0, "file0", "", "Manually specify 'file0' location (default scans in downloads folder)")
+	flag.StringVar(&flagINI, "ini", "", "Manually specify 'undertale.ini' location (default scans in downloads folder)")
 	flag.Parse()
 
 	fmt.Println("Reading config...")
 
-	contents, err := ioutil.ReadFile(CONFIG_NAME)
+	file, err := os.Open(configFile)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			stdutil.PrintErr("Could not read file", err)
@@ -61,33 +62,37 @@ func main() {
 			UndertaleBinaryDir: filepath.Join(defaultSteamDir(current), "steamapps", "common", "Undertale"),
 		}
 
-		contents, err = json.MarshalIndent(config, "", "\t")
+		file, err = os.Open(configFile)
 		if err != nil {
 			stdutil.PrintErr("Could not generate default config", err)
 		} else {
-			err = ioutil.WriteFile(CONFIG_NAME, contents, 0666)
+			encoder := json.NewEncoder(file)
+			encoder.SetIndent("", "\t")
+			err := encoder.Encode(config)
+			file.Close()
 			if err != nil {
 				stdutil.PrintErr("Could not save default config", err)
 			}
 		}
 	} else {
-		err = json.Unmarshal(contents, &config)
+		err = json.NewDecoder(file).Decode(&config)
+		file.Close()
 		if err != nil {
 			stdutil.PrintErr("Could not parse JSON", err)
 			return
 		}
 	}
 
-	var loc_file0 string
-	var loc_ini string
+	var locFile0 string
+	var locINI string
 
-	dst_loc_file0 := filepath.Join(config.UndertaleConfigDir, "file0")
-	dst_loc_ini := filepath.Join(config.UndertaleConfigDir, "undertale.ini")
+	dstLocFile0 := filepath.Join(config.UndertaleConfigDir, "file0")
+	dstLocINI := filepath.Join(config.UndertaleConfigDir, "undertale.ini")
 
-	file0_unset := flag_file0 == ""
-	ini_unset := flag_ini == ""
+	unsetFile0 := flagFile0 == ""
+	unsetINI := flagINI == ""
 
-	if file0_unset || ini_unset {
+	if unsetFile0 || unsetINI {
 		fmt.Println("Finding files...")
 
 		files, err := ioutil.ReadDir(config.DownloadsDir)
@@ -104,58 +109,58 @@ func main() {
 		var file0 os.FileInfo
 		var ini os.FileInfo
 		for _, file := range files {
-			if file0_unset {
-				if R_FILE0.MatchString(file.Name()) &&
+			if unsetFile0 {
+				if regexFile0.MatchString(file.Name()) &&
 					(file0 == nil || file.ModTime().After(file0.ModTime())) {
 					file0 = file
 				}
 			}
-			if ini_unset {
-				if R_INI.MatchString(file.Name()) &&
+			if unsetINI {
+				if regexINI.MatchString(file.Name()) &&
 					(ini == nil || file.ModTime().After(ini.ModTime())) {
 					ini = file
 				}
 			}
 		}
 
-		if !file0_unset {
-			loc_file0 = flag_file0
+		if !unsetFile0 {
+			locFile0 = flagFile0
 		} else if file0 == nil {
-			loc_file0 = dst_loc_file0 + ".back" // Because it'll be moved later on
+			locFile0 = dstLocFile0 + ".back" // Because it'll be moved later on
 		} else {
-			loc_file0 = filepath.Join(config.DownloadsDir, file0.Name())
+			locFile0 = filepath.Join(config.DownloadsDir, file0.Name())
 		}
 
-		if !ini_unset {
-			loc_ini = flag_ini
+		if !unsetINI {
+			locINI = flagINI
 		} else if ini == nil {
-			loc_ini = dst_loc_ini + ".back" // Because it'll be moved later on
+			locINI = dstLocINI + ".back" // Because it'll be moved later on
 		} else {
-			loc_ini = filepath.Join(config.DownloadsDir, ini.Name())
+			locINI = filepath.Join(config.DownloadsDir, ini.Name())
 		}
 	} else {
-		loc_file0 = flag_file0
-		loc_ini = flag_ini
+		locFile0 = flagFile0
+		locINI = flagINI
 	}
 
-	fmt.Println("file0: " + loc_file0)
-	fmt.Println("undertale.ini: ", loc_ini)
+	fmt.Println("file0: " + locFile0)
+	fmt.Println("undertale.ini: ", locINI)
 
 	fmt.Println("Checking for existing backups...")
-	_, err = os.Stat(dst_loc_file0 + ".back")
+	_, err = os.Stat(dstLocFile0 + ".back")
 	if err == nil || !os.IsNotExist(err) {
 		stdutil.PrintErr("Backup for file0 already exists. Cancelling!", nil)
 		return
 	}
 
-	_, err = os.Stat(dst_loc_ini + ".back")
+	_, err = os.Stat(dstLocINI + ".back")
 	if err == nil || !os.IsNotExist(err) {
 		stdutil.PrintErr("Backup for file0 already exists. Cancelling!", nil)
 		return
 	}
 
 	fmt.Println("Backing up...")
-	err = os.Rename(dst_loc_file0, dst_loc_file0+".back")
+	err = os.Rename(dstLocFile0, dstLocFile0+".back")
 	if err != nil {
 		stdutil.PrintErr("Could not backup file0", err)
 		checkConf()
@@ -164,14 +169,14 @@ func main() {
 
 	defer func() {
 		fmt.Println("Restoring file0...")
-		err := os.Rename(dst_loc_file0+".back", dst_loc_file0)
+		err := os.Rename(dstLocFile0+".back", dstLocFile0)
 		if err != nil {
 			stdutil.PrintErr("Could not restore file0 backup", err)
 			return
 		}
 	}()
 
-	err = os.Rename(dst_loc_ini, dst_loc_ini+".back")
+	err = os.Rename(dstLocINI, dstLocINI+".back")
 	if err != nil {
 		stdutil.PrintErr("Could not backup undertale.ini", err)
 		return
@@ -179,7 +184,7 @@ func main() {
 
 	defer func() {
 		fmt.Println("Restoring undertale.ini...")
-		err := os.Rename(dst_loc_ini+".back", dst_loc_ini)
+		err := os.Rename(dstLocINI+".back", dstLocINI)
 		if err != nil {
 			stdutil.PrintErr("Could not restore ini backup", err)
 			return
@@ -187,12 +192,12 @@ func main() {
 	}()
 
 	fmt.Println("Cloning...")
-	success, room := cloneFile0(loc_file0, dst_loc_file0)
+	success, room := cloneFile0(locFile0, dstLocFile0)
 	if !success {
 		return
 	}
 
-	success = cloneINI(loc_ini, dst_loc_ini, room)
+	success = cloneINI(locINI, dstLocINI, room)
 	if !success {
 		return
 	}
@@ -208,7 +213,7 @@ loop:
 			stdutil.PrintErr("Couldn't run undertale", err)
 		}
 
-		if flag_restart {
+		if flagRestart {
 			for {
 				fmt.Print("Undertale closed. Restart? [y/n] ")
 				opt := stdutil.MustScanLower()
@@ -227,7 +232,7 @@ loop:
 }
 
 func cloneFile0(src, dst string) (success bool, room string) {
-	src_file0, err := os.Open(src)
+	srcFile0, err := os.Open(src)
 	if err != nil {
 		if os.IsNotExist(err) {
 			stdutil.PrintErr("Hey, that file0 does not exist!", nil)
@@ -236,28 +241,28 @@ func cloneFile0(src, dst string) (success bool, room string) {
 		}
 		return
 	}
-	defer src_file0.Close()
+	defer srcFile0.Close()
 
-	dst_file0, err := os.Create(dst)
+	dstFile0, err := os.Create(dst)
 	if err != nil {
 		stdutil.PrintErr("Could not open file0 destination", nil)
 		return
 	}
-	defer dst_file0.Close()
+	defer dstFile0.Close()
 
-	scanner := bufio.NewScanner(src_file0)
+	scanner := bufio.NewScanner(srcFile0)
 	i := 0
 	for scanner.Scan() {
 		text := scanner.Text()
 
-		_, err := dst_file0.WriteString(text + "\r\n") // DOS file endings :(
+		_, err := dstFile0.WriteString(text + "\r\n") // DOS file endings :(
 		if err != nil {
 			stdutil.PrintErr("Could not write to destination file0", err)
 			return
 		}
 
 		i++
-		if i == FILE0_ROOM_LINE {
+		if i == roomLine {
 			room = strings.TrimSpace(text)
 		}
 	}
@@ -273,22 +278,22 @@ func cloneFile0(src, dst string) (success bool, room string) {
 }
 
 func cloneINI(src, dst, room string) (success bool) {
-	src_ini, err := os.Open(src)
+	srcINI, err := os.Open(src)
 	if err != nil {
 		stdutil.PrintErr("Error reading undertale.ini", err)
 		checkConf()
 		return
 	}
-	defer src_ini.Close()
+	defer srcINI.Close()
 
-	dst_ini, err := os.Create(dst)
+	dstINI, err := os.Create(dst)
 	if err != nil {
 		stdutil.PrintErr("Error opening destination undertale.ini", err)
 		return
 	}
-	defer dst_ini.Close()
+	defer dstINI.Close()
 
-	scanner := bufio.NewScanner(src_ini)
+	scanner := bufio.NewScanner(srcINI)
 	for scanner.Scan() {
 		text := scanner.Text()
 		if strings.HasPrefix(text, "Room=") {
@@ -296,7 +301,7 @@ func cloneINI(src, dst, room string) (success bool) {
 			text = text[:5] + "\"" + room + "\""
 		}
 
-		_, err := dst_ini.WriteString(text + "\r\n") // DOS file endings :(
+		_, err := dstINI.WriteString(text + "\r\n") // DOS file endings :(
 		if err != nil {
 			stdutil.PrintErr("Could not write to destination file0", err)
 			return
@@ -314,5 +319,5 @@ func cloneINI(src, dst, room string) (success bool) {
 }
 
 func checkConf() {
-	stdutil.PrintErr("Please check all values in "+CONFIG_NAME, nil)
+	stdutil.PrintErr("Please check all values in "+configFile, nil)
 }
