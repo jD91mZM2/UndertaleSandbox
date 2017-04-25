@@ -20,7 +20,7 @@ var regexINI = regexp.MustCompile(`undertale( \([0-9]+\))?.ini`)
 
 const roomLine = 548
 
-const configFile = ".ui_config"
+const configFile = ".undertalesandbox"
 
 type configStruct struct {
 	DownloadsDir       string
@@ -41,6 +41,21 @@ func main() {
 	flag.Parse()
 
 	fmt.Println("Reading config...")
+
+	// Compatibility reasons.
+	_, err := os.Stat(".ui_config")
+	if err != nil {
+		if os.IsNotExist(err) {
+			stdutil.PrintErr("Couldn't stat .ui_config", err)
+		}
+	} else {
+		// Old config name.
+		// Should be renamed
+		err := os.Rename(".ui_config", configFile)
+		if err != nil {
+			stdutil.PrintErr("Attempt to rename old config file failed.", err)
+		}
+	}
 
 	file, err := os.Open(configFile)
 	if err != nil {
