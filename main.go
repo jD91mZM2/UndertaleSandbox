@@ -12,7 +12,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/legolord208/stdutil"
+	"github.com/jD91mZM2/stdutil"
 )
 
 var regexFile0 = regexp.MustCompile(`file0( \([0-9]+\))?`)
