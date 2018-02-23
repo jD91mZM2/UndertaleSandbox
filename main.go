@@ -45,7 +45,7 @@ func main() {
 	// Compatibility reasons.
 	_, err := os.Stat(".ui_config")
 	if err != nil {
-		if os.IsNotExist(err) {
+		if !os.IsNotExist(err) {
 			stdutil.PrintErr("Couldn't stat .ui_config", err)
 		}
 	} else {
@@ -77,7 +77,7 @@ func main() {
 			UndertaleBinaryDir: filepath.Join(defaultSteamDir(current), "steamapps", "common", "Undertale"),
 		}
 
-		file, err = os.Open(configFile)
+		file, err = os.Create(configFile)
 		if err != nil {
 			stdutil.PrintErr("Could not generate default config", err)
 		} else {

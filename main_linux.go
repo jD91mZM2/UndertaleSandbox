@@ -6,7 +6,7 @@ import (
 )
 
 func defaultConfigDir(current *user.User) string {
-	return filepath.Join(current.HomeDir, ".config", "UNDERTALE_linux_steamver")
+	return filepath.Join(current.HomeDir, ".config", "UNDERTALE")
 }
 
 func defaultSteamDir(current *user.User) string {
